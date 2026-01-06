@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Icon Options</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Outfit', 'sans-serif'] },
+                    colors: {
+                        brand: { 500: '#bed600' }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="bg-slate-900 text-white min-h-screen flex flex-col items-center justify-center gap-12">
+
+    <h1 class="text-3xl font-bold mb-8">Choose an Icon</h1>
+
+    <div class="flex gap-16">
+        <!-- Option 1 -->
+        <div class="flex flex-col items-center gap-4 group cursor-pointer p-8 rounded-2xl hover:bg-white/5 transition">
+            <div class="bg-brand-500/20 p-6 rounded-2xl group-hover:bg-brand-500/30 transition">
+                <i class="fa-solid fa-house text-brand-500 text-6xl"></i>
+            </div>
+            <span class="text-xl font-medium">Option 1</span>
+            <span class="text-sm text-gray-400">Classic House</span>
+        </div>
+
+        <!-- Option 2 -->
+        <div class="flex flex-col items-center gap-4 group cursor-pointer p-8 rounded-2xl hover:bg-white/5 transition">
+            <div class="bg-brand-500/20 p-6 rounded-2xl group-hover:bg-brand-500/30 transition">
+                <i class="fa-solid fa-house-chimney text-brand-500 text-6xl"></i>
+            </div>
+            <span class="text-xl font-medium">Option 2</span>
+            <span class="text-sm text-gray-400">With Chimney</span>
+        </div>
+
+        <!-- Option 3 -->
+        <div class="flex flex-col items-center gap-4 group cursor-pointer p-8 rounded-2xl hover:bg-white/5 transition">
+            <div class="bg-brand-500/20 p-6 rounded-2xl group-hover:bg-brand-500/30 transition">
+                <i class="fa-solid fa-house-chimney-window text-brand-500 text-6xl"></i>
+            </div>
+            <span class="text-xl font-medium">Option 3</span>
+            <span class="text-sm text-gray-400">Detailed Window</span>
+        </div>
+    </div>
+
+</body>
+
+</html>
