@@ -106,7 +106,22 @@ function processData(data) {
             return new Date(val); // Hope for the best
         };
 
+        const normalizeYesNo = (val) => {
+            if (!val) return 'No';
+            const s = String(val).trim().toUpperCase();
+            return (s === 'Y' || s === 'YES') ? 'Yes' : 'No';
+        };
+
+        const normalizeCityLimits = (val) => {
+            if (!val) return 'Unknown';
+            const s = String(val).trim().toUpperCase();
+            if (s === 'Y' || s === 'YES') return 'Yes';
+            if (s === 'N' || s === 'NO') return 'No';
+            return 'Unknown';
+        };
+
         return {
+            address: row['Address'] || row['Street Name'] || row['Street Address'] || '',
             date: parseDate(row['Closed Date']),
             price: parsePrice(row['Price']),
             pricePerSqFt: parsePrice(row['Price Per SQFT']),
@@ -117,15 +132,15 @@ function processData(data) {
             beds: row['Beds'],
             baths: row['Full Baths'],
             year: parseDate(row['Closed Date']).getFullYear(),
-            newConstruction: row['New Construction?'] || 'No', // Default to No if missing
-            insideCityLimits: row['Inside City Limits'] || row['Inside City Limit'] || 'Unknown' // Handle variation
+            newConstruction: normalizeYesNo(row['New Construction?']),
+            insideCityLimits: normalizeCityLimits(row['Inside City Limits'] || row['Inside City Limit'])
         };
-    }).filter(d => !isNaN(d.price) && d.price > 0 && d.date.getFullYear() > 2000); // Basic validation filter
+    }).filter(d => !isNaN(d.price) && d.price > 0 && d.date.getFullYear() > 2000);
 
     // Init Defaults (All Selected)
     filterState.selectedYears = [...new Set(rawData.map(d => d.year))];
     filterState.selectedCities = [...new Set(rawData.map(d => d.city))];
-    filterState.selectedNewConstruction = [...new Set(rawData.map(d => d.newConstruction))];
+    filterState.selectedNewConstruction = ['Yes', 'No']; // Explicit defaults for boolean types
     filterState.selectedCityLimits = [...new Set(rawData.map(d => d.insideCityLimits))].filter(x => x !== 'Unknown');
 
     populateFilters();
