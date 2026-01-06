@@ -93,37 +93,49 @@ function handleFileUpload(event) {
 
 function processData(data) {
     // Map and Clean columns based on user screenshot
+    // Safe parsers
+    const parsePrice = (val) => {
+        if (typeof val === 'number') return val;
+        if (typeof val === 'string') return parseFloat(val.replace(/[$,]/g, ''));
+        return 0;
+    };
+
+    const parseDate = (val) => {
+        if (val instanceof Date) return val;
+        return new Date(val); // Hope for the best
+    };
+
+    const normalizeYesNo = (val) => {
+        if (!val) return 'No';
+        const s = String(val).trim().toUpperCase();
+        return (s === 'Y' || s === 'YES') ? 'Yes' : 'No';
+    };
+
+    const normalizeCityLimits = (val) => {
+        if (!val) return 'Unknown';
+        const s = String(val).trim().toUpperCase();
+        if (s === 'Y' || s === 'YES') return 'Yes';
+        if (s === 'N' || s === 'NO') return 'No';
+        return 'Unknown';
+    };
+
     rawData = data.map(row => {
-        // Safe parsers
-        const parsePrice = (val) => {
-            if (typeof val === 'number') return val;
-            if (typeof val === 'string') return parseFloat(val.replace(/[$,]/g, ''));
-            return 0;
-        };
+        // STRICTLY use 'Price' column as requested
+        let dimPrice = row['Price'];
 
-        const parseDate = (val) => {
-            if (val instanceof Date) return val;
-            return new Date(val); // Hope for the best
-        };
-
-        const normalizeYesNo = (val) => {
-            if (!val) return 'No';
-            const s = String(val).trim().toUpperCase();
-            return (s === 'Y' || s === 'YES') ? 'Yes' : 'No';
-        };
-
-        const normalizeCityLimits = (val) => {
-            if (!val) return 'Unknown';
-            const s = String(val).trim().toUpperCase();
-            if (s === 'Y' || s === 'YES') return 'Yes';
-            if (s === 'N' || s === 'NO') return 'No';
-            return 'Unknown';
-        };
+        // Ensure we handle currency formatting or strings
+        if (typeof dimPrice === 'string') {
+            dimPrice = parseFloat(dimPrice.replace(/[$,]/g, ''));
+        }
+        // If undefined or null, default to 0
+        if (dimPrice == null || isNaN(dimPrice)) {
+            dimPrice = 0;
+        }
 
         return {
             address: row['Address'] || row['Street Name'] || row['Street Address'] || '',
             date: parseDate(row['Closed Date']),
-            price: parsePrice(row['Price']),
+            price: dimPrice, // Strict usage
             pricePerSqFt: parsePrice(row['Price Per SQFT']),
             sqFt: parseFloat(row['Apx SQFT'] || 0),
             daysOnMarket: parseInt(row['Days On Market'] || 0),
@@ -137,11 +149,24 @@ function processData(data) {
         };
     }).filter(d => !isNaN(d.price) && d.price > 0 && d.date.getFullYear() > 2000);
 
+    // Filter Duplicates (Same Day + Same Address + Same Price)
+    const seen = new Set();
+    const initialCount = rawData.length;
+    rawData = rawData.filter(d => {
+        const key = `${d.date.getTime()}-${d.address.trim().toLowerCase()}-${d.price}`;
+
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
+    console.log(`Removed ${initialCount - rawData.length} records as duplicates/invalid.`);
+
     // Init Defaults (All Selected)
     filterState.selectedYears = [...new Set(rawData.map(d => d.year))];
     filterState.selectedCities = [...new Set(rawData.map(d => d.city))];
-    filterState.selectedNewConstruction = ['Yes', 'No']; // Explicit defaults for boolean types
-    filterState.selectedCityLimits = [...new Set(rawData.map(d => d.insideCityLimits))].filter(x => x !== 'Unknown');
+    filterState.selectedNewConstruction = ['Yes', 'No'];
+    // Include ALL City Limits options (including 'Unknown') by default
+    filterState.selectedCityLimits = [...new Set(rawData.map(d => d.insideCityLimits))];
 
     populateFilters();
     updateDashboard();
@@ -151,7 +176,7 @@ function populateFilters() {
     renderMultiSelect('year-options', [...new Set(rawData.map(d => d.year))], 'selectedYears', 'year-label', 'Year');
     renderMultiSelect('city-options', [...new Set(rawData.map(d => d.city))], 'selectedCities', 'city-label', 'City');
     renderMultiSelect('new-construction-options', [...new Set(rawData.map(d => d.newConstruction))], 'selectedNewConstruction', 'new-construction-label', 'New Construction');
-    renderMultiSelect('city-limits-options', [...new Set(rawData.map(d => d.insideCityLimits))].filter(x => x !== 'Unknown'), 'selectedCityLimits', 'city-limits-label', 'Inside City Limits');
+    renderMultiSelect('city-limits-options', [...new Set(rawData.map(d => d.insideCityLimits))], 'selectedCityLimits', 'city-limits-label', 'Inside City Limits');
 }
 
 function renderMultiSelect(containerId, options, stateKey, labelId, labelSuffix) {
@@ -162,12 +187,11 @@ function renderMultiSelect(containerId, options, stateKey, labelId, labelSuffix)
     options.sort();
     if (typeof options[0] === 'number') options.sort((a, b) => b - a); // Years desc
 
-    // Header actions (Select All / None)
+    // Header actions (Clear All)
     const header = document.createElement('div');
-    header.className = 'flex justify-between px-4 py-2 text-xs text-brand-500 border-b border-gray-700 mb-1';
-    header.innerHTML = `<span class="cursor-pointer hover:text-brand-300" onclick="selectAll('${stateKey}')">All</span> <span class="cursor-pointer hover:text-brand-300" onclick="deselectAll('${stateKey}')">None</span>`;
-    // We need to bind these actions globally or handle them differently. 
-    // Simplified: Just render items.
+    header.className = 'flex justify-end px-4 py-2 text-xs text-brand-500 border-b border-gray-700 mb-1';
+    header.innerHTML = `<span class="cursor-pointer hover:text-brand-300 transition-colors" onclick="clearFilter(event, '${containerId}', '${stateKey}', '${labelId}', '${labelSuffix}')">Clear All</span>`;
+    container.appendChild(header);
 
     options.forEach(opt => {
         const div = document.createElement('div');
@@ -210,6 +234,23 @@ function handleFilterChange(checkbox, stateKey, labelId, labelSuffix) {
 function updateLabel(stateKey, labelId, labelSuffix) {
     document.getElementById(labelId).innerText = labelSuffix;
 }
+
+// Global Filter Actions
+window.clearFilter = (e, containerId, stateKey, labelId, labelSuffix) => {
+    e.stopPropagation(); // Keep dropdown open
+    e.preventDefault();
+
+    // 1. Clear State
+    filterState[stateKey] = [];
+
+    // 2. Uncheck All UI Inputs in this container
+    const inputs = document.querySelectorAll(`#${containerId} input[type="checkbox"]`);
+    inputs.forEach(input => input.checked = false);
+
+    // 3. Update Dashboard
+    updateLabel(stateKey, labelId, labelSuffix);
+    updateDashboard();
+};
 
 // ------------------------------------------------------------------
 // DASHBOARD LOGIC
