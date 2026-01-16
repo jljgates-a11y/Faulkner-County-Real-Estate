@@ -1,0 +1,24 @@
+# System Files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Node
+node_modules/
+dist/
+.env
+
+# Editor
+.vscode/
+.idea/
+
+# Local Data (Optional - usually you don't commit large data files)
+# Faulkner County Home Sales 2021 thru 2025.xlsx
+
+# Artifacts
+icons_preview.html

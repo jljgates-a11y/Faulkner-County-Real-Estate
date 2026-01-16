@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Portal | Real Estate Dashboard</title>
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f7fceb',
+                            100: '#eef9c2',
+                            500: '#bed600',
+                            600: '#a3b800',
+                            900: '#13294b',
+                        },
+                        dark: {
+                            bg: '#0f172a',
+                            card: '#1e293b',
+                            text: '#f8fafc',
+                            muted: '#94a3b8'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+
+    <!-- Firebase SDKs (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1rem;
+        }
+
+        .upload-zone {
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .upload-zone:hover {
+            border-color: #0ea5e9;
+            background: rgba(14, 165, 233, 0.1);
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col items-center justify-center p-4">
+
+    <!-- Auth Section -->
+    <div id="auth-section" class="glass-card p-8 w-full max-w-md text-center">
+        <div class="mb-6">
+            <img src="logo_v2.png" alt="Logo" class="h-16 mx-auto mb-4">
+            <h1 class="text-2xl font-bold">Admin Access</h1>
+            <p class="text-dark-muted">Please sign in to manage data</p>
+        </div>
+        <form id="login-form" class="space-y-4">
+            <input type="email" id="email" placeholder="Email"
+                class="w-full p-3 rounded bg-dark-bg border border-gray-700 focus:border-brand-500 outline-none"
+                required>
+            <input type="password" id="password" placeholder="Password"
+                class="w-full p-3 rounded bg-dark-bg border border-gray-700 focus:border-brand-500 outline-none"
+                required>
+            <button type="submit"
+                class="w-full bg-brand-500 hover:bg-brand-600 text-dark-900 font-bold py-3 rounded transition-colors">Sign
+                In</button>
+        </form>
+        <p id="auth-error" class="text-red-400 mt-4 text-sm hidden"></p>
+    </div>
+
+    <!-- Admin Dashboard (Hidden initially) -->
+    <div id="admin-dashboard" class="w-full max-w-4xl hidden">
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-bold">Data Management</h1>
+            <button id="logout-btn"
+                class="text-dark-muted hover:text-white px-4 py-2 border border-gray-700 rounded hover:bg-dark-card transition">Sign
+                Out</button>
+        </div>
+
+        <div class="glass-card p-8 mb-8">
+            <h2 class="text-xl font-bold mb-4">Upload New Data</h2>
+            <p class="text-dark-muted mb-6">Upload an Excel file to append to the existing database. Duplicates will be
+                automatically ignored.</p>
+
+            <div class="upload-zone p-12 rounded-2xl cursor-pointer relative group text-center" id="drop-zone">
+                <input type="file" id="file-input" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    accept=".xlsx, .xls">
+                <div class="pointer-events-none">
+                    <i
+                        class="fa-solid fa-cloud-arrow-up text-5xl mb-4 text-dark-muted group-hover:text-brand-500 transition-colors"></i>
+                    <p class="text-lg font-medium">Click to upload or drag & drop</p>
+                </div>
+            </div>
+
+            <div id="upload-status" class="mt-6 hidden">
+                <div class="flex items-center justify-center gap-2 text-brand-500">
+                    <i class="fa-solid fa-circle-notch fa-spin"></i>
+                    <span id="status-message">Processing...</span>
+                </div>
+                <div class="w-full bg-gray-700 rounded-full h-2.5 mt-2">
+                    <div id="progress-bar" class="bg-brand-500 h-2.5 rounded-full" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div id="upload-result" class="mt-6 p-4 rounded bg-gray-800 hidden"></div>
+        </div>
+    </div>
+
+    <!-- Config & Logic -->
+    <script src="firebase-config.js"></script>
+    <script src="admin.js?v=FIX_SIGNATURE_FINAL"></script>
+</body>
+
+</html>

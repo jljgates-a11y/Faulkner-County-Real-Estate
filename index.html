@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real Estate Analytics | Premium Dashboard</title>
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f7fceb',
+                            100: '#eef9c2',
+                            500: '#bed600',
+                            600: '#a3b800',
+                            900: '#13294b',
+                        },
+                        dark: {
+                            bg: '#0f172a',
+                            card: '#1e293b',
+                            text: '#f8fafc',
+                            muted: '#94a3b8'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+
+    <!-- Firebase SDKs (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1rem;
+        }
+
+        .custom-dropdown {
+            position: relative;
+        }
+
+        .custom-dropdown-btn {
+            background-color: #0f172a;
+            border: 1px solid #334155;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-width: 150px;
+        }
+
+        .custom-dropdown-content {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background-color: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 0.5rem;
+            width: 250px;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+            z-index: 50;
+            margin-top: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+        }
+
+        .custom-dropdown-content.show {
+            display: block;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .checkbox-item:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .checkbox-item input {
+            margin-right: 0.75rem;
+            accent-color: #0ea5e9;
+        }
+
+        /* Loading Spinner */
+        #loading-screen {
+            position: fixed;
+            inset: 0;
+            background: #0f172a;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col">
+
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+        <div class="animate-spin text-brand-500 text-4xl mb-4">
+            <i class="fa-solid fa-circle-notch"></i>
+        </div>
+        <h2 class="text-xl font-bold">Loading Market Data...</h2>
+        <p class="text-dark-muted mt-2" id="loading-text">Connecting to database...</p>
+    </div>
+
+    <!-- Navbar -->
+    <nav class="glass-card m-4 px-6 py-4 flex justify-between items-center sticky top-4 z-50">
+        <div class="flex items-center gap-3">
+            <img src="logo_v2.png" alt="Logo" width="50" height="50" class="object-contain">
+            <h1 class="text-2xl font-bold tracking-tight">Pulse of Conway <span class="gradient-text">Residential Real
+                    Estate Dashboard</span></h1>
+        </div>
+        <div>
+            <span class="text-sm text-dark-muted" id="status-text">Live Data</span>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-1 container mx-auto px-4 pb-12">
+
+        <!-- Dashboard (Hidden initially) -->
+        <div id="dashboard" class="hidden space-y-6 animate-fade-in">
+
+            <!-- Filters -->
+            <div class="glass-card p-4 flex flex-wrap gap-4 items-center z-40 relative">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-filter text-brand-500"></i>
+                    <span class="font-medium">Filters:</span>
+                </div>
+
+                <!-- Year Filter Multi -->
+                <div class="custom-dropdown" id="year-dropdown">
+                    <div class="custom-dropdown-btn" onclick="toggleDropdown('year-dropdown')">
+                        <span id="year-label">Year</span>
+                        <i class="fa-solid fa-chevron-down text-xs text-brand-500"></i>
+                    </div>
+                    <div class="custom-dropdown-content" id="year-options">
+                        <!-- Options injected by JS -->
+                    </div>
+                </div>
+
+                <!-- City Filter Multi -->
+                <div class="custom-dropdown" id="city-dropdown">
+                    <div class="custom-dropdown-btn" onclick="toggleDropdown('city-dropdown')">
+                        <span id="city-label">City</span>
+                        <i class="fa-solid fa-chevron-down text-xs text-brand-500"></i>
+                    </div>
+                    <div class="custom-dropdown-content" id="city-options">
+                        <!-- Options injected by JS -->
+                    </div>
+                </div>
+
+                <!-- New Construction Filter -->
+                <div class="custom-dropdown" id="new-construction-dropdown">
+                    <div class="custom-dropdown-btn" onclick="toggleDropdown('new-construction-dropdown')">
+                        <span id="new-construction-label">New Construction</span>
+                        <i class="fa-solid fa-chevron-down text-xs text-brand-500"></i>
+                    </div>
+                    <div class="custom-dropdown-content" id="new-construction-options">
+                        <!-- Options injected by JS -->
+                    </div>
+                </div>
+
+                <!-- Inside City Limits Filter -->
+                <div class="custom-dropdown" id="city-limits-dropdown">
+                    <div class="custom-dropdown-btn" onclick="toggleDropdown('city-limits-dropdown')">
+                        <span id="city-limits-label">Inside City Limits</span>
+                        <i class="fa-solid fa-chevron-down text-xs text-brand-500"></i>
+                    </div>
+                    <div class="custom-dropdown-content" id="city-limits-options">
+                        <!-- Options injected by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- KPI Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- KPI 1: Homes Sold -->
+                <div class="glass-card p-6 relative overflow-hidden">
+                    <p class="text-dark-muted text-sm font-medium mb-1">Homes Sold</p>
+                    <h3 class="text-3xl font-bold" id="kpi-count">-</h3>
+                </div>
+                <!-- KPI 2: Total Volume -->
+                <div class="glass-card p-6 relative overflow-hidden">
+                    <div class="absolute -right-4 -top-4 bg-brand-500/10 w-24 h-24 rounded-full blur-2xl"></div>
+                    <p class="text-dark-muted text-sm font-medium mb-1">Total Sales Volume</p>
+                    <h3 class="text-3xl font-bold" id="kpi-volume">-</h3>
+                    <div class="mt-2 text-xs text-green-400 flex items-center gap-1">
+                        <i class="fa-solid fa-arrow-trend-up"></i>
+                        <span>Confirmed Sales</span>
+                    </div>
+                </div>
+                <!-- KPI 3: Median Price -->
+                <div class="glass-card p-6 relative overflow-hidden">
+                    <p class="text-dark-muted text-sm font-medium mb-1">Median Sale Price</p>
+                    <h3 class="text-3xl font-bold" id="kpi-price">-</h3>
+                </div>
+                <!-- KPI 4: Price / SqFt -->
+                <div class="glass-card p-6 relative overflow-hidden">
+                    <p class="text-dark-muted text-sm font-medium mb-1">Median Price / SqFt</p>
+                    <h3 class="text-3xl font-bold" id="kpi-ppsf">-</h3>
+                </div>
+            </div>
+
+            <!-- Charts Row 1 -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Trend Chart -->
+                <div class="glass-card p-6">
+                    <h3 class="font-bold mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-line text-brand-500"></i>
+                        Price Trend (Monthly Median)
+                    </h3>
+                    <div class="h-80">
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+                <!-- Distribution Chart -->
+                <div class="glass-card p-6">
+                    <h3 class="font-bold mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-column text-brand-500"></i>
+                        Price Distribution
+                    </h3>
+                    <div class="h-80">
+                        <canvas id="distChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Row 2 -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- City Comparison -->
+                <div class="glass-card p-6">
+                    <h3 class="font-bold mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-city text-brand-500"></i>
+                        Median Price by City
+                    </h3>
+                    <div class="h-80">
+                        <canvas id="cityChart"></canvas>
+                    </div>
+                </div>
+                <!-- Property Table (Replaces Scatter Chart) -->
+                <div class="glass-card p-6 lg:col-span-2">
+                    <h3 class="font-bold mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-table-list text-brand-500"></i>
+                        Property List <span class="text-sm font-normal text-gray-400"
+                            id="table-count">(Loading...)</span>
+                    </h3>
+                    <div class="overflow-x-auto h-96 rounded-lg border border-gray-700 bg-dark-card/50">
+                        <table class="w-full text-left text-sm whitespace-nowrap">
+                            <thead class="bg-gray-800 text-gray-300 sticky top-0 z-10 shadow-sm">
+                                <tr>
+                                    <th class="p-3 font-medium">Date</th>
+                                    <th class="p-3 font-medium">Address</th>
+                                    <th class="p-3 font-medium">City</th>
+                                    <th class="p-3 font-medium text-right">Price</th>
+                                    <th class="p-3 font-medium text-right">SqFt</th>
+                                    <th class="p-3 font-medium text-right">$/SqFt</th>
+                                </tr>
+                            </thead>
+                            <tbody id="property-table-body" class="divide-y divide-gray-800 text-gray-400">
+                                <!-- JS Injected Rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="firebase-config.js"></script>
+    <script src="app.js?v=TABLE_VIEW"></script>
+</body>
+
+</html>
