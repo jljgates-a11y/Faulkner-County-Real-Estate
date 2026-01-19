@@ -1,0 +1,15 @@
+{
+  "name": "real-estate-dashboard",
+  "version": "1.0.0",
+  "description": "Faulkner County Real Estate Dashboard",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve -s ."
+  },
+  "dependencies": {
+    "serve": "^14.2.0"
+  },
+  "engines": {
+    "node": "18.x"
+  }
+}
