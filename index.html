@@ -273,7 +273,32 @@
                         <canvas id="cityChart"></canvas>
                     </div>
                 </div>
-                <!-- Property Table (Replaces Scatter Chart) -->
+                <!-- Charts Row 3: Advanced Analysis -->
+                <div class="grid grid-cols-1 gap-6">
+                    <!-- Efficiency Analysis (Bubble Chart) -->
+                    <div class="glass-card p-6">
+                        <h3 class="font-bold mb-4 flex items-center justify-between">
+                            <span class="flex items-center gap-2">
+                                <i class="fa-solid fa-wand-magic-sparkles text-brand-500"></i>
+                                Market Efficiency Analysis (4D Bubble Chart)
+                            </span>
+                            <div class="flex gap-4 text-xs font-normal">
+                                <span class="flex items-center gap-1"><span
+                                        class="w-3 h-3 rounded-full bg-[#bed600]"></span> New Construction</span>
+                                <span class="flex items-center gap-1"><span
+                                        class="w-3 h-3 rounded-full bg-[#13294b]"></span> Existing Home</span>
+                            </div>
+                        </h3>
+                        <div class="h-[500px]">
+                            <canvas id="bubbleChart"></canvas>
+                        </div>
+                        <p class="text-[10px] text-dark-muted mt-2 uppercase tracking-widest text-center">
+                            Bubble Size = Home Age | X = Sq Ft | Y = Price Per Sq Ft
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Property Table -->
                 <div class="glass-card p-6 lg:col-span-2">
                     <h3 class="font-bold mb-4 flex items-center gap-2">
                         <i class="fa-solid fa-table-list text-brand-500"></i>
