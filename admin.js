@@ -108,12 +108,17 @@ async function uploadDataToFirestore(rawData) {
     const collectionRef = db.collection('sales_data');
 
     // 1. Process all records first
-    const cleanRecords = rawData.map(row => {
+    const cleanRecords = rawData.map((row, index) => {
         let dimPrice = row['Price'];
         if (typeof dimPrice === 'string') dimPrice = parseFloat(dimPrice.replace(/[$,]/g, ''));
         if (dimPrice == null || isNaN(dimPrice)) dimPrice = 0;
 
         const dateObj = parseDate(row['Closed Date']);
+
+        // Debug: Log the first row's keys to help find column names if missing
+        if (index === 0) {
+            console.log("Diagnostic: Spreadsheet columns found:", Object.keys(row));
+        }
 
         // Skip invalid dates
         if (isNaN(dateObj.getTime())) return null;
@@ -133,6 +138,8 @@ async function uploadDataToFirestore(rawData) {
             year: Number(dateObj.getFullYear()),
             newConstruction: normalizeYesNo(row['New Construction?']),
             insideCityLimits: normalizeCityLimits(row['Inside City Limits'] || row['Inside City Limit']),
+            // Robust check for Year Built variations
+            yearBuilt: row['Apx YRB'] || row['Year Built'] || row['Yr Built'] || row['YearBuilt'] || row['ApxYRB'] || row['Apx Yrb'] || null,
             uniqueKey: `${dateObj.getTime()}-${(row['Address'] || '').trim().toLowerCase()}-${dimPrice}`
         };
 

@@ -102,6 +102,7 @@ async function fetchDataFromFirestore() {
         snapshot.forEach(doc => {
             try {
                 const d = doc.data();
+                if (data.length === 0) console.log("Debugging: First record from database:", d);
 
                 // Robust Date Parsing
                 let dateObj;
@@ -166,6 +167,7 @@ async function processData(data) {
             beds: row['beds'] || 0,
             baths: row['baths'] || 0,
             year: row['date'].getFullYear(),
+            yearBuilt: row['yearBuilt'] || null,
             newConstruction: row['newConstruction'] || 'No',
             insideCityLimits: row['insideCityLimits'] || 'Unknown'
         };
@@ -191,7 +193,10 @@ async function processData(data) {
         await new Promise(r => setTimeout(r, 10));
 
         // Init Defaults (All Selected)
-        filterState.selectedYears = [...new Set(rawData.map(d => d.year))];
+        let years = [...new Set(rawData.map(d => d.year))];
+        if (!years.includes(2026)) years.push(2026);
+        filterState.selectedYears = years;
+
         filterState.selectedCities = [...new Set(rawData.map(d => d.city))];
         filterState.selectedNewConstruction = ['Yes', 'No'];
         // Include ALL City Limits options (including 'Unknown') by default
@@ -220,9 +225,9 @@ async function processData(data) {
         await new Promise(r => setTimeout(r, 10));
         try { renderPropertyTable(rawData); } catch (e) { console.error("Table Build Failed", e); }
 
-        loadingText.innerText = "Rendering: Scatter Chart...";
+        loadingText.innerText = "Rendering: Advanced Analysis...";
         await new Promise(r => setTimeout(r, 10));
-        try { renderScatterChart(rawData); } catch (e) { console.error("Scatter Chart Failed", e); }
+        try { renderBubbleChart(rawData); } catch (e) { console.error("Bubble Chart Failed", e); }
 
     } catch (err) {
         console.error("Dashboard Build Error:", err);
@@ -241,7 +246,9 @@ async function processData(data) {
 }
 
 function populateFilters() {
-    renderMultiSelect('year-options', [...new Set(rawData.map(d => d.year))], 'selectedYears', 'year-label', 'Year');
+    let years = [...new Set(rawData.map(d => d.year))];
+    if (!years.includes(2026)) years.push(2026);
+    renderMultiSelect('year-options', years, 'selectedYears', 'year-label', 'Year');
     renderMultiSelect('city-options', [...new Set(rawData.map(d => d.city))], 'selectedCities', 'city-label', 'City');
     renderMultiSelect('new-construction-options', [...new Set(rawData.map(d => d.newConstruction))], 'selectedNewConstruction', 'new-construction-label', 'New Construction');
     renderMultiSelect('city-limits-options', [...new Set(rawData.map(d => d.insideCityLimits))], 'selectedCityLimits', 'city-limits-label', 'Inside City Limits');
@@ -344,6 +351,7 @@ function updateDashboard() {
     try { renderDistChart(filteredData); } catch (e) { }
     try { renderCityChart(filteredData); } catch (e) { }
     try { renderPropertyTable(filteredData); } catch (e) { }
+    try { renderBubbleChart(filteredData); } catch (e) { }
 }
 
 function updateKPIs(data) {
@@ -559,4 +567,81 @@ function renderPropertyTable(data) {
     }
 
     tbody.innerHTML = html;
+}
+
+function renderBubbleChart(data) {
+    const ctx = document.getElementById('bubbleChart');
+    if (!ctx) return;
+
+    const currentYear = new Date().getFullYear();
+
+    // Prepare bubble data
+    const bubblePoints = data.map(d => {
+        const age = d.yearBuilt ? (currentYear - d.yearBuilt) : 5; // Default age 5 if unknown
+        return {
+            x: d.sqFt,
+            y: d.price / d.sqFt, // Price per SqFt
+            r: Math.max(3, Math.min(15, age / 2)), // Bubble radius based on age
+            isNew: d.newConstruction === 'Yes',
+            address: d.address,
+            city: d.city,
+            yrb: d.yearBuilt || 'Unknown'
+        };
+    }).filter(p => !isNaN(p.x) && !isNaN(p.y) && p.x > 0);
+
+    if (chartInstances.bubble) chartInstances.bubble.destroy();
+
+    chartInstances.bubble = new Chart(ctx, {
+        type: 'bubble',
+        data: {
+            datasets: [
+                {
+                    label: 'New Construction',
+                    data: bubblePoints.filter(p => p.isNew),
+                    backgroundColor: COLORS.brand,
+                    borderColor: 'rgba(255,255,255,0.2)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Existing Homes',
+                    data: bubblePoints.filter(p => !p.isNew),
+                    backgroundColor: COLORS.accent,
+                    borderColor: 'rgba(255,255,255,0.2)',
+                    borderWidth: 1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            const p = context.raw;
+                            return [
+                                `${p.address} (${p.city})`,
+                                `Price/SqFt: $${p.y.toFixed(2)}`,
+                                `Size: ${p.x.toLocaleString()} sqft`,
+                                `Apx YRB: ${p.yrb}`
+                            ];
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    title: { display: true, text: 'Square Footage', color: COLORS.text },
+                    grid: { color: COLORS.grid },
+                    max: 4000
+                },
+                y: {
+                    title: { display: true, text: 'Price per SqFt', color: COLORS.text },
+                    grid: { color: COLORS.grid },
+                    max: 300
+                }
+            }
+        }
+    });
 }
