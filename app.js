@@ -120,6 +120,8 @@ async function fetchDataFromFirestore() {
             }
         });
 
+        console.log(`DIAGNOSTIC: Total records fetched from Firestore: ${data.length}`);
+
         await processData(data);
 
     } catch (error) {
@@ -171,7 +173,12 @@ async function processData(data) {
             newConstruction: row['newConstruction'] || 'No',
             insideCityLimits: row['insideCityLimits'] || 'Unknown'
         };
-    }).filter(d => !isNaN(d.price) && d.price > 0 && d.date.getFullYear() > 2000);
+    });
+    
+    const beforePriceFilter = rawData.length;
+    rawData = rawData.filter(d => !isNaN(d.price) && d.price > 0 && d.date.getFullYear() > 2000);
+    const afterPriceFilter = rawData.length;
+    console.log(`DIAGNOSTIC: Before price/year filter: ${beforePriceFilter}, After: ${afterPriceFilter}, Dropped: ${beforePriceFilter - afterPriceFilter}`);
 
     loadingText.innerText = `Checking for duplicates in ${rawData.length} records...`;
     await new Promise(r => setTimeout(r, 10));
@@ -186,6 +193,7 @@ async function processData(data) {
         seen.add(key);
         return true;
     });
+    console.log(`DIAGNOSTIC: Before duplicate filter: ${initialCount}, After: ${rawData.length}, Dropped: ${initialCount - rawData.length}`);
     console.log(`Processed ${rawData.length} valid records.`);
 
     try {
